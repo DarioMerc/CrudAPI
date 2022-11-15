@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CrudAPI.Controllers
 {
@@ -19,25 +20,63 @@ namespace CrudAPI.Controllers
                     Content2 = "Buzz"
                 }
             };
+        private readonly DataContext dataContext;
 
+        public RecordController(DataContext dataContext)
+        {
+            this.dataContext = dataContext;
+        }
+
+
+        //ACTIONS
         [HttpGet]
         public async Task<ActionResult<List<Record>>> Get()
         {
             
-            return Ok(records);
+            return Ok(await dataContext.Records.ToListAsync());
         }
         [HttpPost]
         public async Task<ActionResult<List<Record>>> AddRecord(Record record)
         {
-            records.Add(record);
-            return Ok(records);
+            dataContext.Records.Add(record);
+            await dataContext.SaveChangesAsync();
+            return Ok(await dataContext.Records.ToListAsync());
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<List<Record>>> Get(int id)
         {
-            var rec = records.Find(x => x.Id == id);
+            var rec = await dataContext.Records.FindAsync(id);
+            if(rec == null)
+            {
+                return BadRequest("Record not found.");
+            }
             return Ok(rec);
+        }
+        [HttpPut]
+        public async Task<ActionResult<List<Record>>> UpdateRecord(Record request)
+        {
+            var rec = await dataContext.Records.FindAsync(request.Id);
+            if (rec == null)
+            {
+                return BadRequest("Record not found.");
+            }
+            rec.Content = request.Content;
+            rec.Content2 = request.Content2; 
+
+            return Ok(await dataContext.Records.ToListAsync());
+        }
+
+        [HttpDelete]
+        public async Task<ActionResult<List<Record>>> DeleteRecord(int id)
+        {
+            var rec = await dataContext.Records.FindAsync(id);
+            if (rec == null)
+            {
+                return BadRequest("Record not found.");
+            }
+            dataContext.Records.Remove(rec);
+            return Ok(await dataContext.Records.ToListAsync());
         }
     }
 }
